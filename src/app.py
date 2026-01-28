@@ -8,7 +8,7 @@ import datetime
 app = Flask(__name__)
 
 # Paths
-BASE_DIR = r"d:\Solar-Panel-Optimization"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_FILE = os.path.join(BASE_DIR, "solar_model.pkl")
 
 # Load Model
