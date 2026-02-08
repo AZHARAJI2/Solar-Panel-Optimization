@@ -62,12 +62,25 @@ def predict():
         actual_power = data.get('actual_power')
         recommendation = "N/A"
         status = "normal"
+        power_loss = 0
+        loss_percent = 0
+        money_loss_hourly = 0
+        money_loss_daily = 0
+        money_loss_monthly = 0
+        
+        # سعر الكهرباء في اليمن: 170 ريال لكل كيلو واط/ساعة
+        ELECTRICITY_PRICE_YER = 170
         
         if actual_power is not None and actual_power != "":
             actual_power = float(actual_power)
             # Calculate loss
-            loss = predicted_power - actual_power
-            loss_percent = (loss / predicted_power) * 100 if predicted_power > 1 else 0
+            power_loss = max(0, predicted_power - actual_power)
+            loss_percent = (power_loss / predicted_power) * 100 if predicted_power > 1 else 0
+            
+            # حساب الخسائر المالية بالريال اليمني
+            money_loss_hourly = power_loss * ELECTRICITY_PRICE_YER
+            money_loss_daily = money_loss_hourly * 8  # متوسط 8 ساعات شمس
+            money_loss_monthly = money_loss_daily * 30
             
             # Thresholds (Example: >20% loss when sunny)
             if irradiation > 0.1 and loss_percent > 20:
@@ -82,13 +95,22 @@ def predict():
                 
         response = {
             'predicted_power': round(float(predicted_power), 2),
+            'actual_power': round(float(actual_power), 2) if actual_power else None,
             'recommendation': recommendation,
             'status': status,
+            'power_loss': float(round(float(power_loss), 2)),
+            'loss_percent': float(round(float(loss_percent), 1)),
+            'money_loss': {
+                'hourly': int(round(float(money_loss_hourly), 0)),
+                'daily': int(round(float(money_loss_daily), 0)),
+                'monthly': int(round(float(money_loss_monthly), 0)),
+                'currency': 'YER'
+            },
             'details': {
-                'hour': hour,
-                'month': month,
-                'input_irradiation': irradiation,
-                'input_temp': temperature
+                'hour': int(hour),
+                'month': int(month),
+                'input_irradiation': float(irradiation),
+                'input_temp': float(temperature)
             }
         }
         

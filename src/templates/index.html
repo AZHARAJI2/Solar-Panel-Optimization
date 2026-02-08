@@ -5,8 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام تحسين الطاقة الشمسية الذكي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Local CSS for Offline Support -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
     <style>
         body {
             font-family: 'Tajawal', sans-serif;
@@ -25,6 +26,8 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 24px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            position: relative;
+            overflow: hidden;
         }
 
         .input-glass {
@@ -99,6 +102,54 @@
         .status-warning {
             background-color: #f39c12;
         }
+
+        /* Result Layer - Fixed Overlay */
+        .result-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            z-index: 20;
+            display: none;
+            /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 24px;
+            text-align: center;
+            border-radius: 24px;
+            overflow-y: auto;
+        }
+
+        .result-layer.show {
+            display: flex;
+        }
+
+        /* Utility class for hiding elements */
+        .hidden {
+            display: none !important;
+        }
+
+        .cost-card {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid rgba(231, 76, 60, 0.4);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cost-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 
@@ -106,23 +157,24 @@
 
     <div class="container max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
 
-        <!-- Right Column: Branding (Moved to Right for RTL visual flow typically, but in code it's first) -->
+        <!-- Right Column: Branding -->
         <div class="space-y-6 text-center lg:text-right order-last lg:order-first">
             <h1 class="text-5xl font-extrabold tracking-tight leading-tight">
                 نظام تحسين <br>
                 <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">الطاقة
                     الشمسية</span>
             </h1>
-            <p class="text-lg text-blue-100/80 font-light max-w-md mx-auto lg:mx-0">
+            <p class="text-lg text-blue-100 font-light max-w-md mx-auto lg:mx-0">
                 نظام ذكي يعتمد على تحليل البيانات للكشف عن الأتربة والغبار والتنبؤ بالطاقة الإنتاجية المثالية في الوقت
                 الفعلي.
             </p>
         </div>
 
         <!-- Left Column: Interface -->
-        <div class="glass-card p-8 w-full max-w-md mx-auto order-first lg:order-last">
-            <form id="predictForm" class="space-y-6">
+        <div class="glass-card p-8 w-full max-w-md mx-auto order-first lg:order-last" style="min-height: 450px;">
 
+            <!-- Form Layer -->
+            <form id="predictForm" class="space-y-6">
                 <div class="space-y-2">
                     <label class="text-sm font-bold text-blue-200">التاريخ والوقت</label>
                     <input type="datetime-local" id="datetime" class="w-full p-4 rounded-xl input-glass" required>
@@ -143,7 +195,8 @@
 
                 <div class="space-y-2">
                     <label class="text-sm font-bold text-blue-200">الطاقة الفعلية (kW) <span
-                            class="bg-white/10 px-2 py-0.5 rounded text-[10px] mr-2">قراءة الحساس</span></label>
+                            class="bg-white px-2 py-1 rounded text-xs mr-2"
+                            style="background: rgba(255,255,255,0.1)">قراءة الحساس</span></label>
                     <input type="number" id="actual_power" step="0.01" placeholder="أدخل القراءة الحالية..."
                         class="w-full p-4 rounded-xl input-glass font-mono">
                 </div>
@@ -153,27 +206,53 @@
                 </button>
             </form>
 
-            <!-- Results Overlay -->
-            <div id="resultLayer"
-                class="hidden absolute inset-0 bg-[#1e3c72] bg-opacity-95 rounded-24px z-10 flex flex-col items-center justify-center p-6 text-center rounded-[24px]">
-                <div id="statusIcon" class="w-20 h-20 rounded-full flex items-center justify-center mb-6 status-badge">
-                    <svg id="iconSVG" xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none"
+            <!-- Results Overlay (Hidden by default) -->
+            <div id="resultLayer" class="result-layer hidden">
+                <div id="statusIcon" class="w-16 h-16 rounded-full flex items-center justify-center mb-4 status-badge">
+                    <svg id="iconSVG" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
-                        <!-- Icon injected by JS -->
                     </svg>
                 </div>
 
                 <h3 class="text-sm font-bold text-blue-300 mb-1">الإنتاج المتوقع (المثالي)</h3>
-                <p class="text-4xl font-mono font-bold text-white mb-6" dir="ltr"><span id="predPower">0.00</span> kW
+                <p class="text-3xl font-mono font-bold text-white mb-2" dir="ltr"><span id="predPower">0.00</span> kW
                 </p>
 
-                <div class="bg-white/10 rounded-xl p-4 w-full">
-                    <h4 class="text-xs uppercase text-blue-200 mb-2">حالة النظام</h4>
-                    <p class="text-xl font-bold leading-relaxed" id="recommendationText">جارٍ التحليل...</p>
+                <!-- Power Loss Info -->
+                <div id="lossInfo" class="bg-white rounded-xl p-3 w-full mb-3 hidden"
+                    style="background: rgba(255,255,255,0.1)">
+                    <div class="flex justify-between items-center">
+                        <span class="text-blue-200 text-sm">فقدان الطاقة:</span>
+                        <span class="font-bold text-white" dir="ltr"><span id="powerLoss">0</span> kW (<span
+                                id="lossPercent">0</span>%)</span>
+                    </div>
                 </div>
 
-                <button onclick="document.getElementById('resultLayer').classList.add('hidden')"
-                    class="mt-6 text-sm text-blue-300 hover:text-white underline">
+                <div class="bg-white rounded-xl p-3 w-full" style="background: rgba(255,255,255,0.1)">
+                    <h4 class="text-xs uppercase text-blue-200 mb-2">حالة النظام</h4>
+                    <p class="text-lg font-bold leading-relaxed" id="recommendationText">جارٍ التحليل...</p>
+                </div>
+
+                <!-- Cost Section -->
+                <div id="costSection" class="cost-card w-full hidden">
+                    <h4 class="text-sm font-bold text-red-300 mb-3">💸 الخسائر المالية بسبب الغبار</h4>
+                    <div class="cost-item">
+                        <span class="text-blue-200">خسارة كل ساعة:</span>
+                        <span class="font-bold text-yellow-300" dir="ltr"><span id="costHourly">0</span> ريال</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="text-blue-200">خسارة يومية (8 ساعات):</span>
+                        <span class="font-bold text-orange-300" dir="ltr"><span id="costDaily">0</span> ريال</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="text-blue-200">خسارة شهرية:</span>
+                        <span class="font-bold text-red-300 text-lg" dir="ltr"><span id="costMonthly">0</span>
+                            ريال</span>
+                    </div>
+                    <p class="text-xs text-blue-300 mt-3">* بناءً على سعر 170 ريال/كيلو واط ساعة</p>
+                </div>
+
+                <button onclick="hideResults()" class="mt-4 px-6 py-2 rounded-xl font-bold btn-glow text-white">
                     إجراء فحص جديد
                 </button>
             </div>
@@ -182,6 +261,19 @@
 
     <script>
         document.getElementById('datetime').value = new Date().toISOString().slice(0, 16);
+
+        function hideResults() {
+            const layer = document.getElementById('resultLayer');
+            layer.classList.remove('show');
+            // Small delay to allow transition if we added one, then hide
+            setTimeout(() => {
+                layer.classList.add('hidden');
+            }, 10);
+        }
+
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
 
         document.getElementById('predictForm').addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -210,12 +302,30 @@
                 const layer = document.getElementById('resultLayer');
                 const statusIcon = document.getElementById('statusIcon');
                 const iconSVG = document.getElementById('iconSVG');
+                const lossInfo = document.getElementById('lossInfo');
+                const costSection = document.getElementById('costSection');
 
                 document.getElementById('predPower').innerText = result.predicted_power;
                 document.getElementById('recommendationText').innerText = result.recommendation;
 
+                // Show power loss and cost if actual power was provided
+                if (result.actual_power !== null && result.power_loss > 0) {
+                    document.getElementById('powerLoss').innerText = result.power_loss;
+                    document.getElementById('lossPercent').innerText = result.loss_percent;
+                    lossInfo.classList.remove('hidden');
+
+                    // Show cost section
+                    document.getElementById('costHourly').innerText = formatNumber(result.money_loss.hourly);
+                    document.getElementById('costDaily').innerText = formatNumber(result.money_loss.daily);
+                    document.getElementById('costMonthly').innerText = formatNumber(result.money_loss.monthly);
+                    costSection.classList.remove('hidden');
+                } else {
+                    lossInfo.classList.add('hidden');
+                    costSection.classList.add('hidden');
+                }
+
                 // Apply conditional styling
-                statusIcon.className = 'w-20 h-20 rounded-full flex items-center justify-center mb-6 status-badge'; // reset
+                statusIcon.className = 'w-16 h-16 rounded-full flex items-center justify-center mb-4 status-badge';
 
                 if (result.status === 'alert') {
                     statusIcon.classList.add('status-alert');
@@ -228,7 +338,12 @@
                     iconSVG.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
                 }
 
+                // Correct toggle logic
                 layer.classList.remove('hidden');
+                // Small delay to allow display flex to apply before adding opacity if we had transitions
+                setTimeout(() => {
+                    layer.classList.add('show');
+                }, 10);
 
             } catch (err) {
                 alert("خطأ في الاتصال");
