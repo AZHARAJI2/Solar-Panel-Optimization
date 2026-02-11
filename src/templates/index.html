@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام تحسين الطاقة الشمسية الذكي</title>
+    <title>نظام تشخيص أعطال الطاقة الشمسية الذكي</title>
     <!-- Local CSS for Offline Support -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
@@ -160,14 +160,16 @@
         <!-- Right Column: Branding -->
         <div class="space-y-6 text-center lg:text-right order-last lg:order-first">
             <h1 class="text-5xl font-extrabold tracking-tight leading-tight">
-                نظام تحسين <br>
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">الطاقة
-                    الشمسية</span>
-            </h1>
-            <p class="text-lg text-blue-100 font-light max-w-md mx-auto lg:mx-0">
-                نظام ذكي يعتمد على تحليل البيانات للكشف عن الأتربة والغبار والتنبؤ بالطاقة الإنتاجية المثالية في الوقت
-                الفعلي.
-            </p>
+                <h1 class="text-5xl font-extrabold tracking-tight leading-tight">
+                    نظام تشخيص <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">أعطال الطاقة
+                        الشمسية الذكي</span>
+                </h1>
+                <p class="text-lg text-blue-100 font-light max-w-md mx-auto lg:mx-0">
+                    نظام ذكي يعتمد على تحليل البيانات للكشف عن الأتربة والغبار والتنبؤ بالطاقة الإنتاجية المثالية في
+                    الوقت
+                    الفعلي.
+                </p>
         </div>
 
         <!-- Left Column: Interface -->
@@ -183,8 +185,9 @@
                 <div class="space-y-2">
                     <label class="text-sm font-bold text-blue-200">حجم المنظومة (kW)</label>
                     <div class="flex gap-2">
-                        <input type="number" id="system_size" step="0.1" placeholder="مثلاً: 2 أو 3"
-                            class="w-full p-4 rounded-xl input-glass font-mono" required>
+                        <input type="number" id="system_size" step="0.1" min="0" placeholder="مثلاً: 2 أو 3"
+                            class="w-full p-4 rounded-xl input-glass font-mono" oninput="validity.valid||(value='');"
+                            required>
                         <button type="button" onclick="showSystemCalculator()"
                             class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-xl text-white font-bold transition-colors"
                             title="حاسبة حجم المنظومة">
@@ -201,12 +204,13 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-2">
                         <label class="text-sm font-bold text-blue-200">الإشعاع الشمسي (kW/m²)</label>
-                        <input type="number" id="irradiation" step="0.0001" placeholder="0.85"
-                            class="w-full p-4 rounded-xl input-glass font-mono" required>
+                        <input type="number" id="irradiation" step="0.0001" min="0" max="1.2" placeholder="0.85"
+                            class="w-full p-4 rounded-xl input-glass font-mono" oninput="validity.valid||(value='');"
+                            required>
                     </div>
                     <div class="space-y-2">
                         <label class="text-sm font-bold text-blue-200">درجة الحرارة (°C)</label>
-                        <input type="number" id="temperature" step="0.1" placeholder="45.0"
+                        <input type="number" id="temperature" step="0.1" max="100" placeholder="45.0"
                             class="w-full p-4 rounded-xl input-glass font-mono" required>
                     </div>
                 </div>
@@ -215,16 +219,16 @@
                     <label class="text-sm font-bold text-blue-200">الإنتاج الفعلي لليوم (kWh) <span
                             class="bg-white px-2 py-1 rounded text-xs mr-2" style="background: rgba(255,255,255,0.1)">من
                             شاشة الإنفرتر</span></label>
-                    <input type="number" id="actual_power" step="0.1" placeholder="مثلاً: 8 أو 10 أو 15"
-                        class="w-full p-4 rounded-xl input-glass font-mono">
+                    <input type="number" id="actual_power" step="0.1" min="0" placeholder="مثلاً: 8 أو 10 أو 15"
+                        class="w-full p-4 rounded-xl input-glass font-mono" oninput="validity.valid||(value='');">
                     <p class="text-xs text-blue-300">الرقم الذي يظهر في شاشة الإنفرتر نهاية اليوم</p>
                 </div>
 
                 <div class="space-y-2">
                     <label class="text-sm font-bold text-blue-200">استهلاك المنزل اليومي (kWh)</label>
                     <div class="flex gap-2">
-                        <input type="number" id="daily_consumption" step="0.1" placeholder="مثلاً: 10 أو 15"
-                            class="w-full p-4 rounded-xl input-glass font-mono">
+                        <input type="number" id="daily_consumption" step="0.1" min="0" placeholder="مثلاً: 10 أو 15"
+                            class="w-full p-4 rounded-xl input-glass font-mono" oninput="validity.valid||(value='');">
                         <button type="button" onclick="showCalculator()"
                             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-white font-bold transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
@@ -467,6 +471,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "حدث خطأ غير معروف");
+                }
+
                 const result = await response.json();
 
                 console.log("Server Response:", result); // Debug
@@ -548,7 +558,9 @@
 
             } catch (err) {
                 console.error(err);
-                alert("خطأ في الاتصال: " + err);
+                // إذا كان الخطأ قادماً من الخادم كاستجابة JSON، سنعرضه كما هو
+                // هنا نفترض أن `response.json()` لم ينجح، لكن إذا فشل الطلب نفسه:
+                alert("تنبيه: " + err);
             } finally {
                 btn.innerText = originalText;
             }

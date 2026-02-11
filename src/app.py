@@ -43,6 +43,37 @@ def predict():
             daily_consumption = float(daily_consumption) if daily_consumption else 0
         except:
             daily_consumption = 0
+
+        # ========================================
+        # التحقق من صحة المدخلات (Validation)
+        # ========================================
+        validation_errors = []
+        if system_size < 0:
+            validation_errors.append("حجم النظام لا يمكن أن يكون سالباً.")
+        if irradiation < 0:
+            validation_errors.append("الإشعاع الشمسي لا يمكن أن يكون سالباً.")
+        if irradiation > 1.2:
+            validation_errors.append("الإشعاع الشمسي مرتفع جداً (أقصى حد 1.2 كيلو واط/م²).")
+        
+        # درجة الحرارة
+        if temperature < -50: 
+             validation_errors.append("درجة الحرارة منخفضة جداً وغير واقعية.")
+        if temperature > 100:
+             validation_errors.append("درجة الحرارة مرتفعة جداً (أقصى حد 100 درجة مئوية).")
+
+        if daily_consumption < 0:
+             validation_errors.append("الاستهلاك اليومي لا يمكن أن يكون سالباً.")
+        
+        if actual_power is not None:
+             try:
+                 actual_power = float(actual_power)
+                 if actual_power < 0:
+                     validation_errors.append("الإنتاج الفعلي لا يمكن أن يكون سالباً.")
+             except ValueError:
+                 validation_errors.append("الإنتاج الفعلي يجب أن يكون رقماً.")
+
+        if validation_errors:
+            return jsonify({'error': " | ".join(validation_errors)}), 400
         
         # الحصول على الساعة والشهر للموديل
         date_str = data.get('datetime')
@@ -104,43 +135,52 @@ def predict():
         # الطريقة 2: المعادلة الفيزيائية (Fallback)
         # ========================================
         
-        # حساب معامل الكفاءة بناءً على الحرارة
-        if temperature > 45:
-            temp_factor = 0.80
-        elif temperature > 40:
-            temp_factor = 0.85
-        elif temperature > 35:
-            temp_factor = 0.90
-        elif temperature > 25:
-            temp_factor = 0.95
+        # ثوابت فيزيائية آمنة (Safe Physical Constants)
+        TEMPERATURE_COEFFICIENT = -0.0045  # معامل الحرارة (-0.45% لكل درجة مئوية فوق 25)
+        STANDARD_TEMP = 25.0               # درجة الحرارة القياسية (STC)
+        
+        # معادلة القدرة الفيزيائية القياسية:
+        # Power = Rated_Power * (Irradiance / 1000) * [1 + Coeff * (Temp - 25)]
+        # نفترض أن الإشعاع المدخل (irradiation) بوحدة kW/m² (أي ما يعادل Irradiance/1000)
+        
+        # 1. حساب تأثير الحرارة
+        temp_diff = temperature - STANDARD_TEMP
+        temp_loss_factor = 1 + (TEMPERATURE_COEFFICIENT * temp_diff)
+        
+        # الكفاءة لا تزيد عن 100% ولا تقل عن 0% (نظرياً)
+        # في الواقع، قد تزيد الكفاءة قليلاً إذا كانت الحرارة أقل من 25، لكن سنثبتها عند حد أقصى للحماية
+        physics_performance_ratio = min(1.1, max(0.0, temp_loss_factor))
+        
+        # 2. حساب الإنتاج المتوقع فيزيائياً (كيلووات لحظي)
+        # المعادلة: الحجم * الإشعاع * عامل الحرارة
+        physics_power_kw = system_size * irradiation * physics_performance_ratio
+        
+        # تحويل القدرة اللحظية (kW) إلى كفاءة نسبية للمقارنة مع الموديل
+        # الكفاءة هنا تعني نسبة الإنتاج الفعلي للإنتاج المعياري
+        if (system_size * irradiation) > 0:
+            physics_efficiency_ratio = physics_power_kw / (system_size * irradiation)
         else:
-            temp_factor = 1.0
-        
-        # معامل الإشعاع
-        if irradiation < 0.2:
-            irr_factor = 0.40
-        elif irradiation < 0.4:
-            irr_factor = 0.60
-        elif irradiation < 0.6:
-            irr_factor = 0.80
-        else:
-            irr_factor = 1.0
-        
-        physics_efficiency = temp_factor * irr_factor
-        
+            physics_efficiency_ratio = 0.0
+
         # ========================================
         # دمج النتيجتين (متوسط مرجح)
         # ========================================
         
         if model_efficiency is not None:
-            # 70% من الموديل + 30% من الفيزياء
-            final_efficiency = (0.7 * model_efficiency) + (0.3 * physics_efficiency)
-            prediction_source = "ML Model + Physics"
+            # استخدام الموديل كأساس (لأنه يرى أشياء لا تراها الفيزياء مثل الغبار الموسمي)
+            # والفيزياء كعامل مساعد لضبط القيم الشاذة
+            final_efficiency = (0.7 * model_efficiency) + (0.3 * physics_efficiency_ratio)
+            prediction_source = "Hybrid: ML (70%) + Physics (30%)"
         else:
-            final_efficiency = physics_efficiency
-            prediction_source = "Physics Only"
+            final_efficiency = physics_efficiency_ratio
+            prediction_source = "Physics Only (Standard Formula)"
         
         # الإنتاج المتوقع اليومي (kWh)
+        # PSH (ساعات ذروة) * كفاءة النظام * حجم النظام
+        # ملاحظة: المعادلة الفيزيائية أعلاه حسبت القدرة اللحظية.
+        # لتحويلها ليومي، نستخدم PSH بدلاً من الإشعاع اللحظي في معادلة اليوم الكامل
+        
+        # المعادلة اليومية المحسنة:
         expected_daily = system_size * PSH * final_efficiency
         
         # ========================================
