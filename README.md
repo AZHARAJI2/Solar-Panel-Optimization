@@ -5,7 +5,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)
-![XGBoost](https://img.shields.io/badge/XGBoost-ML-orange.svg)
+![Random Forest](https://img.shields.io/badge/Random_Forest-ML-orange.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 **نظام ذكي يستخدم التعلم الآلي لتحسين أداء الألواح الشمسية وكشف تراكم الغبار**
@@ -68,7 +68,7 @@
 ## ✨ الميزات
 
 ### 🤖 الذكاء الاصطناعي
-- **نموذج XGBoost** بدقة **98.64%** (R² Score)
+- **نموذج Random Forest** بدقة **92.00%** (R² Score)
 - تدريب على **68,774 عينة** من بيانات حقيقية
 - معالجة البيانات الناقصة والقيم الشاذة
 - **Feature Engineering** متقدم (Hour, Month, Temperature)
@@ -98,7 +98,7 @@
 ### المبدأ الأساسي:
 
 ```
-المدخلات ──▶ معالجة البيانات ──▶ XGBoost Model ──▶ حساب الكفاءة ──▶ النتائج
+المدخلات ──▶ معالجة البيانات ──▶ Random Forest ──▶ حساب الكفاءة ──▶ النتائج
 ```
 
 ### الخطوات التفصيلية:
@@ -111,8 +111,8 @@
 
 Model Training:
 ├── Linear Regression  (R² = 0.85, RMSE = 145.2W)
-├── Random Forest      (R² = 0.92, RMSE = 98.5W)
-└── XGBoost           (R² = 0.9864, RMSE = 75.3W) ✅ Best
+├── Random Forest      (R² = 0.92, RMSE = 98.5W) ✅ Best
+└── XGBoost           (R² = 0.9864, RMSE = 75.3W)
 ```
 
 #### 2️⃣ **التنبؤ** (Online - عند الاستخدام)
@@ -173,7 +173,7 @@ if actual_production < expected_production:
                     ┌─────────────┴─────────────┐
                     │                           │
            ┌────────▼────────┐         ┌───────▼────────┐
-           │  XGBoost Model  │         │ Physics Calc   │
+           │  Random Forest  │         │ Physics Calc   │
            │   (AI-based)    │         │ Size × 5.5 × η │
            └────────┬────────┘         └───────┬────────┘
                     │                           │
@@ -209,7 +209,7 @@ if actual_production < expected_production:
 |---------|---------|-----------|
 | **Python** | 3.8+ | لغة البرمجة الأساسية |
 | **Flask** | 2.0+ | Web Framework |
-| **XGBoost** | 1.7+ | نموذج التعلم الآلي |
+| **Scikit-learn** | 1.2+ | مكتبة ML (Random Forest) |
 | **Pandas** | 1.5+ | معالجة البيانات |
 | **NumPy** | 1.23+ | الحسابات الرياضية |
 | **Scikit-learn** | 1.2+ | تقييم النماذج |
@@ -270,15 +270,15 @@ y = 'DC_POWER'  # الطاقة المنتجة (W)
 | النموذج | R² Score | RMSE (W) | الوقت | الملاحظات |
 |---------|----------|----------|-------|-----------|
 | **Linear Regression** | 0.8500 | 145.2 | سريع | بسيط لكن أقل دقة |
-| **Random Forest** | 0.9200 | 98.5 | متوسط | جيد لكن أبطأ |
-| **XGBoost** ⭐ | **0.9864** | **75.3** | سريع | **الأفضل** |
+| **Random Forest** ⭐ | **0.9200** | **98.5** | متوسط | **الاختيار الأنسب** |
+| **XGBoost** | 0.9864 | 75.3 | سريع | دقة عالية |
 
-### لماذا XGBoost؟
-✅ **دقة عالية جداً**: R² = 98.64%  
-✅ **RMSE منخفض**: 75.3W فقط  
-✅ **سرعة التنبؤ**: ميلي ثانية  
-✅ **مقاومة Overfitting**: Regularization مدمج  
-✅ **يتعامل مع القيم الشاذة** بشكل جيد  
+### لماذا Random Forest؟
+✅ **دقة عالية**: R² = 92%  
+✅ **RMSE مقبول**: 98.5W  
+✅ **استقرار عالي**: يقلل من التباين (Variance)  
+✅ **سهل التفسير**: يمكن معرفة أهمية المزايا بسهولة  
+✅ **يتعامل مع البيانات غير الخطية** بكفاءة  
 
 ### مقاييس التقييم
 
@@ -307,18 +307,18 @@ weather_df = pd.read_csv('datasets/Plant_1_Weather_Sensor_Data.csv')
 # المعالجة والدمج
 # ... (انظر الـ Notebook للتفاصيل)
 
-# تدريب XGBoost
-model = xgb.XGBRegressor(
-    objective='reg:squarederror',
+# تدريب Random Forest
+model = RandomForestRegressor(
     n_estimators=100,
-    random_state=42
+    random_state=42,
+    n_jobs=-1
 )
 model.fit(X_train, y_train)
 
 # التقييم
 y_pred = model.predict(X_test)
-r2 = r2_score(y_test, y_pred)      # 0.9864
-rmse = np.sqrt(mean_squared_error(y_test, y_pred))  # 75.3W
+r2 = r2_score(y_test, y_pred)      # 0.9200
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))  # 98.5W
 
 # حفظ النموذج
 joblib.dump(model, 'solar_model.pkl')
@@ -750,8 +750,8 @@ Weather Data:
 
 | المقياس | القيمة | الوصف |
 |---------|-------|-------|
-| **R² Score** | **0.9864** | النموذج يفسر 98.64% من التباين |
-| **RMSE** | **75.3 W** | متوسط الخطأ = 75 واط فقط! |
+| **R² Score** | **0.9200** | النموذج يفسر 92% من التباين |
+| **RMSE** | **98.5 W** | متوسط الخطأ = 98.5 واط |
 | **MAE** | **45.2 W** | متوسط الخطأ المطلق |
 | **Training Time** | **~5 sec** | على CPU عادي |
 | **Prediction Time** | **<1 ms** | استجابة فورية |
@@ -857,7 +857,7 @@ of this software...
 ## 🙏 شكر وتقدير
 
 - **Kaggle** - على توفير البيانات
-- **XGBoost Team** - على المكتبة الرائعة
+- **Scikit-learn Team** - على المكتبة الرائعة
 - **Flask Community** - على الـ framework البسيط
 - **Font Awesome** - للأيقونات
 - **Google Fonts** - للخطوط العربية
@@ -867,11 +867,11 @@ of this software...
 ## 📚 مراجع ومصادر
 
 ### Papers & Research
-- [XGBoost: A Scalable Tree Boosting System](https://arxiv.org/abs/1603.02754)
+- [Random Forests](https://link.springer.com/article/10.1023/A:1010933404324)
 - [Solar Power Forecasting using ML](https://ieeexplore.ieee.org)
 
 ### Documentation
-- [XGBoost Docs](https://xgboost.readthedocs.io/)
+- [Scikit-learn Docs](https://scikit-learn.org/)
 - [Flask Documentation](https://flask.palletsprojects.com/)
 - [Pandas Guide](https://pandas.pydata.org/)
 
@@ -907,9 +907,9 @@ of this software...
 
 ## 🌟 Overview (EN)
 
-**Solar Panel Optimization System** combines **Machine Learning (XGBoost)** with **Physics-based calculations** to:
+**Solar Panel Optimization System** combines **Machine Learning (Random Forest)** with **Physics-based calculations** to:
 
-✅ Predict expected solar panel production with **98.64% accuracy**  
+✅ Predict expected solar panel production with **92% accuracy**  
 ✅ Automatically detect dust accumulation  
 ✅ Calculate financial losses from dust  
 ✅ Assess system efficiency  
@@ -919,7 +919,7 @@ of this software...
 
 ## ✨ Features (EN)
 
-- **XGBoost Model** trained on 68k+ real data points
+- **Random Forest Model** trained on 68k+ real data points
 - **Web Interface** with modern glassmorphism design
 - **Arabic Support** with RTL layout
 - **System Calculator** for sizing
@@ -932,7 +932,7 @@ of this software...
 ## 🧠 How It Works (EN)
 
 ```
-User Inputs → XGBoost Model → Efficiency Calculation → Results
+User Inputs → Random Forest → Efficiency Calculation → Results
 ```
 
 1. **Train** on 4MW plant data (offline)
